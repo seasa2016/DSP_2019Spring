@@ -16,14 +16,10 @@ vector< vector<char> > load_data(char *file_name)
 	{
 		fscanf(f,"%c",&temp);
 		if(temp == '\n')
-		{
 			data.push_back(vector<char>());
-		}
-		else
-		{
-			data[data.size()-1].push_back(temp);
-		}
 		
+		else
+			data[data.size()-1].push_back(temp);
 	}
 	data.pop_back();	
 	data.pop_back();	
@@ -35,73 +31,110 @@ vector< vector<char> > load_data(char *file_name)
 
 void update_alpha_beta(double **alpha,double **beta,double **gamma,double **epsilon,int max_len,HMM *hmm_model,vector< vector<char> > &data)
 {
-	double **temp_gamma,**temp_epsilon;
-
+	double **temp_gamma,***temp_epsilon;
+	
+	//allocate dynamic memory
+	//N*T
 	temp_gamma = new double*[hmm_model->state_num];
-	temp_epsilon = new double*[hmm_model->state_num];
-
 	for(int j=0 ; j<hmm_model->state_num ; j++)
-	{
 		temp_gamma[j] = new double[max_len];
-		temp_epsilon[j] = new double[max_len];
-	}
+	
+	//T-1*N*N
+	temp_epsilon = new double**[max_len-1];
+	for(int j=0 ; j<hmm_model->max_len-1 ; j++)
+	{
+		temp_epsilon[j] = new double*[hmm_model->state_num];
+		for(int k=0 ; k<hmm_model->state_num ; k++)
+			temp_epsilon[j][k] = new double[hmm_model->state_num];
+	}		
+	
 
 
 	//iteerate over all data
 	for(int i=0;i<data.size();i++)
 	{
 		//in each round re initial matrix
-		for(int j=0 ; j<hmm_model->state_num ; j++)
-			for(int k=0 ; k<data[i].size() ; k++)
+		for(int t=0 ; t<data[i].size() ; t++)
+			for(int j=0 ; k<hmm_model->state_num ; j++)
 			{
-				alpha[j][k] = 0;
-				beta[j][k] = 0;
-				temp_gamma[j][k] = 0;
-				temp_epsilon[j][k] = 0;
+				alpha[j][t] = 0;
+				beta[j][t] = 0;
+				temp_gamma[j][t] = 0;
 			}
+		for(int t=0 ; t<data[i].size()-1 ; t++)
+			for(int j=0 ; k<hmm_model->state_num ; j++)
+				for(int k=0 ; k<hmm_model->state_num ; k++)
+					temp_epsilon[t][j][k] = 0;
 		
 		//do the forward algorithm
 		//setting the initial probabilityi
-		//alpha_{1}(i) = pi_{i}*b_{i}(o_1) 	1<=i<=N
-
+		//alpha_{1}(j) = pi_{j}*b_{j}(o_1) 	1<=i<=N
 		//update
-		//alpha_{t+1}(j) = \sum_{i=1}^{N}(alpha_{t}(i)*a_{ij}) *b_{j}(o_{t+1})
+		//alpha_{t+1}(j) = \sum_{k=1}^{N}(alpha_{t}(k)*a_{kj}) *b_{j}(o_{t+1})
 		//1<=t<=T-1 1<=j<=N
-		for(int j=0 ; j<hmm_model->state_num ; j++)
-			for(int k=0 ; k<data[i].size()-1 ; k++)
-			{
-				if(k==0)
-					for(int j=0 ; j<hmm_model->state_num ; j++)
-						alpha[j][0] = hmm_model->initial[j] * hmm_model->observation[ data[i][0]-'A' ][ j ];
-				else:
-					for(int l=0 ; l<hmm_model->state_num ; l++)
-						alpha[j][k+1] += alpha[l][k]*hmm_model->transition[l][j] * hmm_model->observation[ data[i][k+1] ][l];
-			}
 
-		//do the backward algorithm
-		//we should notice that beta doesnt do with the current state observation probability
-		//setting the initial probability
-		//beta_{T}(i) = 1 1<=i<=N
 		for(int j=0 ; j<hmm_model->state_num ; j++)
-			beta[j][ data[i].size()-1 ] = 1;
+			alpha[j][0] = hmm_model->initial[j] * hmm_model->observation[ data[i][0]-'A' ][ j ];
+			
+		for(int t=0 ; t<data[i].size()-1 ; t++)
+			for(int j=0 ; k<hmm_model->state_num ; j++)
+				for(int k=0 ; k<hmm_model->state_num ; k++)
+					alpha[j][t+1] += alpha[k][t]*hmm_model->transition[k][j] * hmm_model->observation[ data[i][t+1]-'A' ][j];
+			
+		/*
+		do the backward algorithm
+		we should notice that beta doesnt do with the current state observation probability
+		setting the initial probability
+		beta_{T}(i) = 1 1<=i<=N
+		update beta
+		beta_{t}(j) = \sum_{k=1}^{N}( a_{jk} * b_{k}(o_{t+1})*beta_{t+1}(k))
+		t=T-1,T-2,...,2,1 1<=i<=N
+		*/
 
+		/*
+		updata temp_gamma temp_epsilon
+		gamma_t(i) = alpha_t(i)*beta_t(i)
+		epsilon_t(i,j) = alpha_t(i)*a_{ij}*b_{j}(O_{t+1})*beta_t(j)
+		*/
 		for(int j=0 ; j<hmm_model->state_num ; j++)
 		{
-			for(int k=data[i].size()-1 ; k>0 ; k--)
-			{
-				//update beta
-				//beta_{t}(i) = \sum_{j=1}^{N}( a_{ij} * b_{j}(o_{t+1})*beta_{t+1}(j))
-				//t=T-1,T-2,...,2,1 1<=i<=N
-				for(int l=0 ; l<hmm_model->state_num ; l++)
-					beta[j][k-1] += alpha[l][j]*beta[l][k]*hmm_model->observation[ data[i][k] ][l];
-				
-
-				//updata gamma epsilon
-				
-			}
+			beta[j][ data[i].size()-1 ] = 1;
+			
+			temp_gamma[j][data[i].size()-1] = alpha[j][data[i].size()-1]*beta[j][data[i].size()-1];
 		}
+
+		for(int t=data[i].size()-2 ; t>=0 ; t--)
+		{
+			for(int j=0 ; j<hmm_model->state_num ; j++)
+			{
+				//beta
+				for(int k=0 ; k<hmm_model->state_num ; k++)
+				{
+					beta[j][t] += hmm_model->transition[j][k]*beta[k][t+1]*hmm_model->observation[ data[i][t+1]-'A' ][k];
+					temp_epsilon[j][k] = alpha[j][t]*hmm_model->transition[j][k]*beta[k][t+1]*hmm_model->observation[ data[i][t+1]-'A' ][k];
+				}
+				//gamma epsilon
+				temp_gamma[j][t] = alpha[j][t]*beta[j][t];
+			}
+			//update global gamma epsilon
+			temp_epsilon[j][k]
+			temp_gamma[j][t]
+		}
+	}	
+	//free dynamic memory
+	//N*T
+	for(int j=0 ; j<hmm_model->state_num ; j++)
+		delete temp_gamma[j];
+	delete temp_gamma;
 	
-	}
+	//T-1*N*N
+	for(int j=0 ; j<hmm_model->max_len-1 ; j++)
+	{
+		for(int k=0 ; k<hmm_model->state_num ; k++)
+			delete temp_epsilon[j][k];
+		delete temp_epsilon[j];
+	}		
+	delete temp_epsilon = new double;
 }
 
 void update_pi_a_b(alpha,beta,hmm_model,data)
