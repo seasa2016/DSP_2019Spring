@@ -181,7 +181,7 @@ void update(int iterate,HMM* hmm_model,vector< vector<char> >&data )
 
 	for(int i=0;i<iterate;i++)
 		update_model(alpha,beta,temp_gamma,total_gamma,temp_epsilon,initial,transition,observation,hmm_model,data);
-
+	printf("here\n");
 	//free dynamic memory
 	for(int i=0 ; i<hmm_model->state_num ; i++)
 	{
@@ -203,18 +203,22 @@ void update(int iterate,HMM* hmm_model,vector< vector<char> >&data )
 	for(int i=0 ; i<hmm_model->observ_num ; i++)
 		delete observation[i];	
 	delete observation;
+	printf("here2\n");
 }
 
 int main(int argv,char* argc[])
 {
 	int iteration;
 	HMM hmm_initial;
+	sscanf(argc[1],"%d",&iteration);
 	vector< vector<char> > data;
 	loadHMM( &hmm_initial, argc[2]);
 	data = load_data(argc[3]);
 
 	update(iteration,&hmm_initial,data);
-
+	//dumpHMM(fopen(argc[4],"w"),&hmm_initial);
+	FILE* f = fopen(argc[4],"w");
+	fprintf(f,"test\n");
 
 	return 0;
 }
