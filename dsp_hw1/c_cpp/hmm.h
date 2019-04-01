@@ -15,11 +15,11 @@
 #endif
 
 #ifndef MAX_SEQ
-#	define	MAX_SEQ		200
+#	define	MAX_SEQ		50
 #endif
 
 #ifndef MAX_LINE
-#	define MAX_LINE 	256
+#	define MAX_LINE 	10000
 #endif
 
 typedef struct{
