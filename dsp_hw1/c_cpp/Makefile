@@ -12,8 +12,8 @@ test_hmm: test_hmm.c
 	g++ test_hmm.c -o test_hmm
 train: train.cpp
 	g++ train.cpp -o train
-test:
-	#g++ test.c -o test
+test: test.cpp
+	g++ test.cpp -o test
 
 clean:
 	$(RM) $(TARGET)   # type make clean to remove the compiled file
