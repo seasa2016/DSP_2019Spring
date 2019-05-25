@@ -2,3 +2,6 @@
 *_r07944059/
 *.txt
 htk341_debian_x86_64/
+.vscode/
+*.zip
+*.json

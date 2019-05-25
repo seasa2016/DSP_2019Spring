@@ -1,0 +1,18 @@
+#include<stdio.h>
+
+int main(void)
+{
+	FILE *fp = fopen("q","r");
+	char arr[1024];
+
+	while(true)
+	{
+		fscanf(fp," %s",arr);
+		if(!feof(fp))
+			break;
+		printf("%s\n",arr);
+	}
+
+}
+
+
